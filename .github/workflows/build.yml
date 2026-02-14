@@ -11,20 +11,22 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-          cache: false # تعطيل الكاش لتجنب خطأ go.sum
+
+      - name: Install Build Essentials
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make git gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
       - name: Build Sliver Server
         run: |
-          # جلب الكود المصدري
           git clone https://github.com/BishopFox/sliver.git source-code
           cd source-code
           
-          # تحميل المكتبات المطلوبة
+          # تحميل المكتبات والـ Assets
           go mod download
           
-          # البناء المباشر للسيرفر فقط (ARM64)
-          # سنضيف خيارات الـ LDFlags لدمج الـ Assets وتقليل الحجم
-          GOOS=linux GOARCH=arm64 CGO_ENABLED=1 \
+          # بناء السيرفر لـ ARM64 (v8.1) باستخدام الـ Cross Compiler
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc \
           go build -v -ldflags "-s -w" -o ../sliver-server-arm64 ./server
 
       - name: Upload Artifact
