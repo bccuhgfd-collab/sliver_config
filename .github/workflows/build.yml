@@ -1,37 +1,21 @@
 name: Final Sliver Build
 on: [push, workflow_dispatch]
 jobs:
-  build-server:
+  get-official-server:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-
-      - name: Build ARM64 Server
+      - name: Download Official ARM64 Server
         run: |
-          # 1. جلب السورس كود
-          git clone https://github.com/BishopFox/sliver.git source
-          cd source
+          # سحب النسخة الرسمية مباشرة من خوادم GitHub Releases
+          curl -L "https://github.com/BishopFox/sliver/releases/latest/download/sliver-server_linux_arm64" -o sliver-server-arm64
           
-          # 2. تثبيت أداة البروتوكول (ضرورية جداً لسيلفر)
-          sudo apt-get update && sudo apt-get install -y protobuf-compiler
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          # التأكد من أن الملف ليس فارغاً (حماية من الروابط المكسورة)
+          if [ ! -s sliver-server-arm64 ]; then echo "Download failed!" && exit 1; fi
           
-          # 3. التحميل والبناء الفعلي بتجاهل أخطاء التوليد غير الضرورية
-          export PATH=$PATH:$(go env GOPATH)/bin
-          go mod download
-          
-          # البناء المباشر للسيرفر مع دمج الـ Assets يدوياً
-          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -v -trimpath -ldflags "-s -w" -o ../sliver-server-arm64 ./server
+          chmod +x sliver-server-arm64
 
-      - name: Upload
+      - name: Upload Verified Binary
         uses: actions/upload-artifact@v4
         with:
-          name: sliver-binary
+          name: sliver-server-arm64
           path: sliver-server-arm64
