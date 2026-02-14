@@ -11,27 +11,24 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-          cache: false
 
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y make git gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu p7zip-full
+          sudo apt-get install -y make git gcc-aarch64-linux-gnu
+          # تثبيت أدوات التوليد اللازمة لسيلفر
+          go install github.com/gobuffalo/packr/v2/packr2@latest
 
       - name: Build Sliver Server
         run: |
           git clone https://github.com/BishopFox/sliver.git source-code
           cd source-code
           
-          # إعداد البيئة للبناء العابر (Cross-Compilation)
-          export GOOS=linux
-          export GOARCH=arm64
-          export CGO_ENABLED=1
-          export CC=aarch64-linux-gnu-gcc
+          # الخطوة السحرية: توليد الأصول يدوياً قبل أي شيء
+          go generate ./...
           
-          # تنفيذ بناء السيرفر باستخدام Makefile الرسمي
-          # أضفنا سطر لتجاوز أخطاء التوليد غير الجوهرية
-          make generate || true
+          # بناء السيرفر لـ ARM64
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc \
           go build -v -ldflags "-s -w" -o ../sliver-server-arm64 ./server
 
       - name: Upload Artifact
